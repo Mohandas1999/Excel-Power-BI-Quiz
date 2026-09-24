@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel Skills Quiz</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#eef4ff,#f8fbff);color:#172033}
+.container{max-width:900px;margin:35px auto;padding:20px}
+.card{background:#fff;border-radius:22px;box-shadow:0 15px 45px rgba(30,55,100,.12);padding:32px}
+h1{margin:0 0 8px;font-size:30px;color:#173b7a}
+.subtitle{color:#667085;margin-bottom:25px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{font-weight:600;font-size:14px}
+input{width:100%;padding:13px 14px;border:1px solid #d0d5dd;border-radius:10px;margin-top:7px;font-size:16px}
+button{border:0;border-radius:11px;padding:13px 20px;font-weight:700;cursor:pointer;font-size:15px}
+.primary{background:#1f6feb;color:#fff}
+.primary:disabled{opacity:.5;cursor:not-allowed}
+.hidden{display:none!important}
+.topbar{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:18px}
+.progress{height:9px;background:#e8eef8;border-radius:20px;overflow:hidden}
+.progress>div{height:100%;background:#1f6feb;width:0%;transition:.2s}
+.timer{font-size:22px;font-weight:800;color:#d92d20;background:#fff0ee;padding:9px 14px;border-radius:10px;min-width:85px;text-align:center}
+.question{font-size:23px;font-weight:750;line-height:1.35;margin:28px 0 20px}
+.option{display:block;width:100%;text-align:left;background:#f8fafc;border:2px solid #e4e7ec;margin:11px 0;padding:15px 17px;border-radius:13px;font-weight:600;color:#344054}
+.option:hover{border-color:#8ab4ff;background:#f2f7ff}
+.option.selected{border-color:#1f6feb;background:#edf4ff}
+.actions{display:flex;justify-content:flex-end;margin-top:25px}
+.result{text-align:center}
+.score{font-size:56px;font-weight:900;color:#1f6feb;margin:15px}
+.small{color:#667085;font-size:13px}
+.notice{padding:12px 14px;border-radius:10px;background:#fff7e6;color:#7a4b00;margin:15px 0;font-size:14px}
+.success{padding:15px;border-radius:12px;background:#ecfdf3;color:#027a48;margin-top:15px}
+.error{padding:15px;border-radius:12px;background:#fef3f2;color:#b42318;margin-top:15px}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.card{padding:22px}.question{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card" id="loginCard">
+    <h1>Excel & Power BI Skills Quiz</h1>
+    <div class="subtitle">25 questions · 20 seconds per question · One attempt per Campus ID</div>
+    <div class="notice">Enter your Campus ID and name exactly as registered. A Campus ID can submit only once.</div>
+    <div class="grid">
+      <div><label>Campus ID</label><input id="campusId" autocomplete="off" placeholder="Enter Campus ID"></div>
+      <div><label>Full Name</label><input id="studentName" autocomplete="name" placeholder="Enter your name"></div>
+    </div>
+    <div style="margin-top:20px"><button class="primary" id="startBtn" onclick="startQuiz()">Start Quiz</button></div>
+    <div id="loginMsg"></div>
+  </div>
+
+  <div class="card hidden" id="quizCard">
+    <div class="topbar">
+      <div style="flex:1">
+        <div style="font-weight:700;margin-bottom:8px">Question <span id="qNo">1</span> of 25</div>
+        <div class="progress"><div id="progress"></div></div>
+      </div>
+      <div class="timer" id="timer">20</div>
+    </div>
+    <div class="question" id="question"></div>
+    <div id="options"></div>
+    <div class="actions"><button class="primary" onclick="nextQuestion()">Next</button></div>
+  </div>
+
+  <div class="card hidden result" id="resultCard">
+    <h1>Quiz Completed</h1>
+    <div class="score" id="score"></div>
+    <div id="resultText"></div>
+    <div id="saveStatus" class="small" style="margin-top:15px"></div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    "q": "Which of the following is NOT a component of the Excel interface?",
+    "o": [
+      "Formula Bar",
+      "Slide Sorter",
+      "Ribbon",
+      "Worksheet"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What is the intersection of a row and a column in Excel called?",
+    "o": [
+      "Box",
+      "Cell",
+      "Grid",
+      "Field"
+    ],
+    "a": 1
+  },
+  {
+    "q": "Which of these is used to display the contents of the active cell?",
+    "o": [
+      "Name Box",
+      "Status Bar",
+      "Formula Bar",
+      "Ribbon"
+    ],
+    "a": 2
+  },
+  {
+    "q": "Which of the following is used to identify a cell in Excel?",
+    "o": [
+      "Cell Name",
+      "Cell Address",
+      "Cell Tag",
+      "Cell Label"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What does the Name Box display in Excel?",
+    "o": [
+      "Contents of the cell",
+      "Name of the sheet",
+      "Address of the active cell",
+      "Total of selected cells"
+    ],
+    "a": 2
+  },
+  {
+    "q": "Which of these symbols is used to start a formula in Excel?",
+    "o": [
+      "!",
+      "=",
+      "$",
+      "@"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What will be the result of the formula =2+3*4?",
+    "o": [
+      "20",
+      "14",
+      "24",
+      "9"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What is the default file extension for Excel workbooks?",
+    "o": [
+      ".py",
+      ".xlsx",
+      ".html",
+      ".c"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What does the SUM() function do in Excel?",
+    "o": [
+      "Subtracts numbers",
+      "Adds numbers",
+      "Averages numbers",
+      "Multiplies numbers"
+    ],
+    "a": 1
+  },
+  {
+    "q": "Which function is used to calculate the average in Excel?",
+    "o": [
+      "AVERAGE()",
+      "MEAN()",
+      "AVG()",
+      "MID()"
+    ],
+    "a": 0
+  },
+  {
+    "q": "A ______ is an Excel file that contains one or more worksheets.",
+    "o": [
+      "Workbook",
+      "Cell Address",
+      "Cell",
+      "Worksheet"
+    ],
+    "a": 0
+  },
+  {
+    "q": "What is Microsoft Excel primarily used for?",
+    "o": [
+      "Creating animations and videos",
+      "Data entry, calculations, data analysis, and visualization",
+      "Writing essays and documents",
+      "Sending and receiving emails"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What does the IF function do in Excel?",
+    "o": [
+      "Adds two numbers",
+      "Checks a condition and returns a value based on it",
+      "Finds the largest value",
+      "Sorts data in ascending order"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What is the main purpose of Data Validation in Excel?",
+    "o": [
+      "To restrict the type of data entered in a cell",
+      "To change cell color based on data",
+      "To protect the worksheet from editing",
+      "To format the text in a cell"
+    ],
+    "a": 0
+  },
+  {
+    "q": "Which shortcut is used to copy and paste in Excel?",
+    "o": [
+      "Ctrl + C (Copy), Ctrl + V (Paste)",
+      "Ctrl + C (Copy), Ctrl + P (Paste)",
+      "Ctrl + S (Copy), Ctrl + V (Paste)",
+      "Ctrl + S (Copy), Ctrl + P (Paste)"
+    ],
+    "a": 0
+  },
+  {
+    "q": "Which feature in Excel is used to create a drop-down list?",
+    "o": [
+      "Conditional Formatting",
+      "Data Validation",
+      "Format Cells",
+      "Sort & Filter"
+    ],
+    "a": 1
+  },
+  {
+    "q": "How is a cell reference represented in Excel?",
+    "o": [
+      "Column letter followed by row number (e.g., A1)",
+      "Row number followed by column letter (e.g., 1A)",
+      "Only row number",
+      "Only column letter"
+    ],
+    "a": 0
+  },
+  {
+    "q": "Which of the following is the top-left cell in an Excel worksheet?",
+    "o": [
+      "A0",
+      "A1",
+      "1A",
+      "0A"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What is required for a dynamic drop-down list in Excel?",
+    "o": [
+      "A manually typed list",
+      "A range of cells or named range",
+      "A chart",
+      "A formula in a cell"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What is a relative reference in Excel?",
+    "o": [
+      "A cell that always stays fixed",
+      "A reference that changes when copied",
+      "A link to another file",
+      "A name given to a cell"
+    ],
+    "a": 1
+  },
+  {
+    "q": "What is the correct syntax for the AVERAGE function?",
+    "o": [
+      "AVERAGE(A1 to A5)",
+      "=AVG(A1:A5)",
+      "=AVERAGE(A1:A5)",
+      "=MEAN(A1:A5)"
+    ],
+    "a": 2
+  },
+  {
+    "q": "Which option is used to apply the same formatting from one cell to another?",
+    "o": [
+      "AutoFill",
+      "Format Painter",
+      "Conditional Format",
+      "Paste Special"
+    ],
+    "a": 1
+  },
+  {
+    "q": "Which Excel feature is commonly used to summarize data before importing to Power BI?",
+    "o": [
+      "Pivot Table",
+      "Chart",
+      "Data Validation",
+      "Conditional Formatting"
+    ],
+    "a": 0
+  },
+  {
+    "q": "What is the first step in bringing Excel data into Power BI?",
+    "o": [
+      "Insert → Table",
+      "Home → New Measure",
+      "Get Data → Excel",
+      "Model → Relationship"
+    ],
+    "a": 2
+  },
+  {
+    "q": "Which tool in Power BI is used for data transformation?",
+    "o": [
+      "Report View",
+      "Model View",
+      "Power Query Editor",
+      "Dashboard View"
+    ],
+    "a": 2
+  }
+];
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzho4k6xsDVi7ku9I75mpqbXFRdTn24asvwSRyqIHiPR86MomoO5A14-udS7lYT5yRGkw/exec";
+let campusId="", studentName="", current=0, selected=null, score=0, timer=null, timeLeft=20, submitted=false;
+
+function showMsg(el, text, cls="error") {
+  el.innerHTML = `<div class="${cls}">${text}</div>`;
+}
+async function api(payload) {
+  const r = await fetch(SCRIPT_URL, {
+    method:"POST",
+    body:JSON.stringify(payload),
+    headers:{"Content-Type":"text/plain;charset=utf-8"}
+  });
+  return await r.json();
+}
+
+async function startQuiz() {
+  const btn=document.getElementById("startBtn");
+  campusId=document.getElementById("campusId").value.trim();
+  studentName=document.getElementById("studentName").value.trim();
+  if(!campusId || !studentName) return showMsg(document.getElementById("loginMsg"),"Please enter both Campus ID and Name.");
+  if(SCRIPT_URL.includes("PASTE_YOUR")) return showMsg(document.getElementById("loginMsg"),"Please configure the Google Apps Script URL in this HTML first.");
+  btn.disabled=true; btn.textContent="Checking...";
+  try {
+    const res=await api({action:"checkStudent",campusId,name:studentName});
+    if(!res.ok) {
+      btn.disabled=false; btn.textContent="Start Quiz";
+      return showMsg(document.getElementById("loginMsg"),res.message);
+    }
+    document.getElementById("loginCard").classList.add("hidden");
+    document.getElementById("quizCard").classList.remove("hidden");
+    renderQuestion();
+  } catch(e) {
+    btn.disabled=false; btn.textContent="Start Quiz";
+    showMsg(document.getElementById("loginMsg"),"Could not connect to the quiz server. Check the Apps Script URL and deployment.");
+  }
+}
+
+function renderQuestion() {
+  selected=null;
+  const q=QUESTIONS[current];
+  document.getElementById("qNo").textContent=current+1;
+  document.getElementById("progress").style.width=((current)/QUESTIONS.length*100)+"%";
+  document.getElementById("question").textContent=q.q;
+  const box=document.getElementById("options"); box.innerHTML="";
+  q.o.forEach((opt,i)=>{
+    const b=document.createElement("button");
+    b.className="option";
+    b.innerHTML=`<b>${String.fromCharCode(65+i)}.</b> ${opt}`;
+    b.onclick=()=>selectOption(i);
+    box.appendChild(b);
+  });
+  startTimer();
+}
+
+function selectOption(i) {
+  selected=i;
+  [...document.querySelectorAll(".option")].forEach((b,idx)=>b.classList.toggle("selected",idx===i));
+}
+
+function startTimer() {
+  clearInterval(timer); timeLeft=20; document.getElementById("timer").textContent=timeLeft;
+  timer=setInterval(()=>{
+    timeLeft--; document.getElementById("timer").textContent=timeLeft;
+    if(timeLeft<=0){clearInterval(timer); nextQuestion(true);}
+  },1000);
+}
+
+function nextQuestion(auto=false) {
+  if(submitted) return;
+  clearInterval(timer);
+  if(selected!==null && selected===QUESTIONS[current].a) score++;
+  current++;
+  if(current>=QUESTIONS.length) finishQuiz();
+  else renderQuestion();
+}
+
+async function finishQuiz() {
+  submitted=true;
+  document.getElementById("quizCard").classList.add("hidden");
+  document.getElementById("resultCard").classList.remove("hidden");
+  document.getElementById("score").textContent=`${score} / ${QUESTIONS.length}`;
+  document.getElementById("resultText").innerHTML=`<p>Your quiz has been completed.</p><p class="small">Campus ID: ${campusId}<br>Name: ${studentName}</p>`;
+  document.getElementById("saveStatus").textContent="Saving result...";
+  try {
+    const res=await api({action:"submitResult",campusId,name:studentName,score,total:QUESTIONS.length});
+    if(res.ok) {
+      document.getElementById("saveStatus").innerHTML='<div class="success">Result saved successfully. This Campus ID is now locked for future attempts.</div>';
+    } else {
+      document.getElementById("saveStatus").innerHTML='<div class="error">'+res.message+'</div>';
+    }
+  } catch(e) {
+    document.getElementById("saveStatus").innerHTML='<div class="error">The result could not be saved. Please contact the quiz administrator.</div>';
+  }
+}
+</script>
+</body>
+</html>
